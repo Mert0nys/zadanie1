@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PSN Games</title>
+</head>
+<body>
+    <h1>Список игр PSN</h1>
+    <form action="/games" method="get">
+        <input type="text" name="search" placeholder="Поиск игр...">
+        <button type="submit">Поиск</button>
+    </form>
+    <div id="games-list">
+        <ul>
+            <!-- Здесь будет список игр -->
+            {% for game in games %}
+                <li>
+                    <a href="{{ game.link }}">
+                        <img src="{{ game.image }}" alt="{{ game.title }}" style="width: 100px;">
+                        <h2>{{ game.title }}</h2>
+                        <p>{{ game.price }}</p>
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+</body>
+</html>
