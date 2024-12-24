@@ -1,0 +1,6 @@
+[
+    {"title": "Game A", "current_price": "10$", "old_price": "12$", "discount_percentage": "20%", "link": "/gamea"},
+    {"title": "Game B", "current_price": "25$", "old_price": "50$", "discount_percentage": "50%", "link": "/gameb"},
+    {"title": "Game C", "current_price": "5$", "old_price": "6$", "discount_percentage": "10%", "link": "/gamec"}
+  ]
+  

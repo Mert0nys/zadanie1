@@ -1,75 +1,35 @@
-import requests
-from bs4 import BeautifulSoup
-from fastapi import FastAPI, Query, Request
-from fastapi.responses import JSONResponse
-from fastapi.templating import Jinja2Templates
-import uvicorn
+from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
+import telebot
 import json
-import os
 
 app = FastAPI()
+bot = telebot.TeleBot('7861739670:AAGJpkw0lseuOJBkwQfpp4XuBQxpeiXKiVQ')
 
-# Настройка шаблонов
-templates = Jinja2Templates(directory="templates")
-
-# Файл для хранения данных об играх
-GAMES_FILE = "games.json"
-
-def get_psn_games():
-    url = "https://store.playstation.com/en-us/pages/deals"
-
-    try:
-        response = requests.get(url)
-        response.raise_for_status()  
-        soup = BeautifulSoup(response.content, 'html.parser')
-
-        games = []
-        for item in soup.select('.discount-item-selector'): 
-            title = item.select_one('.title-selector').text.strip() 
-            price = item.select_one('.price-selector').text.strip()
-            link = item.select_one('a')['href']  
-            image = item.select_one('img')['src'] if item.select_one('img') else None  
-            
-            games.append({
-                'title': title,
-                'price': price,
-                'link': link,
-                'image': image
-            })
-
-        # Проверяем, есть ли игры перед сохранением
-        if games:
-            with open(GAMES_FILE, 'w') as f:
-                json.dump(games, f)
-        else:
-            print("Нет доступных игр для сохранения.")
-
-        return games
-    except Exception as e:
-        print(f"Error fetching games: {e}")
-        return []
+# Загрузка данных из JSON
+with open('games.json', 'r') as f:
+    games = json.load(f)
 
 @app.get("/")
-async def root(request: Request):
-    games = get_psn_games()  
-    return templates.TemplateResponse("index.html", {"request": request, "games": games})
+async def root():
+    return {"message": "Welcome to PSN Store Telegram Mini App!"}
 
-@app.get("/games")
-async def read_games(search: str = Query(None)):
-    if os.path.exists(GAMES_FILE):
-        with open(GAMES_FILE, 'r') as f:
-            try:
-                games = json.load(f)
-            except json.JSONDecodeError:
-                print("Ошибка декодирования JSON. Файл может быть пустым или поврежденным.")
-                games = []
-    else:
-        games = get_psn_games()  
+@app.get("/games", response_class=HTMLResponse)
+async def get_games(discount_threshold: int = 0):
+    filtered_games = [game for game in games if int(game['discount_percentage'].replace('%', '')) >= discount_threshold]
+    
+    html_content = "<h1>Список игр со скидками</h1><ul>"
+    for game in filtered_games:
+        html_content += f"<li>{game['title']} - {game['current_price']} (Старая цена: {game['old_price']}, Скидка: {game['discount_percentage']}) - <a href='{game['link']}'>Подробнее</a></li>"
+    html_content += "</ul>"
+    
+    return HTMLResponse(content=html_content)
 
-    if search:
-        games = [game for game in games if search.lower() in game['title'].lower()]
-
-    return JSONResponse(content=games)
+# Обработчик команд Telegram
+@bot.message_handler(commands=['start'])
+def send_welcome(message):
+    bot.reply_to(message, "Добро пожаловать! Используйте команду /games для получения списка игр со скидками.")
 
 if __name__ == "__main__":
+    import uvicorn
     uvicorn.run(app, host="localhost", port=8000)
